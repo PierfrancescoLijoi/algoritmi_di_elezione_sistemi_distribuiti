@@ -1,0 +1,97 @@
+version: '2.24.5'
+
+networks:
+  my_network:
+    driver: bridge
+
+services:
+  peer1:
+    build:
+      context: .
+      dockerfile: Dockerfile_peer
+    ports:
+      - "8081:8081"
+    networks:
+      - my_network
+    hostname: container1
+    command: ["./peer/peer"]
+    depends_on:
+      - registry
+    environment:
+      - HOSTNAME=peer1
+      - PORT=8081
+  peer2:
+    build:
+      context: .
+      dockerfile: Dockerfile_peer
+    ports:
+      - "8082:8082"
+    networks:
+      - my_network
+    hostname: peer2
+    command: ["./peer/peer"]
+    depends_on:
+      - registry
+    environment:
+      - HOSTNAME=peer2
+      - PORT=8082
+  peer3:
+    build:
+      context: .
+      dockerfile: Dockerfile_peer
+    ports:
+      - "8083:8083"
+    networks:
+      - my_network
+    hostname: peer3
+    command: [ "./peer/peer" ]
+    depends_on:
+      - registry
+    environment:
+      - HOSTNAME=peer3
+      - PORT=8083
+  peer4:
+    build:
+      context: .
+      dockerfile: Dockerfile_peer
+    ports:
+      - "8084:8084"
+    networks:
+      - my_network
+    hostname: peer4
+    command: [ "./peer/peer" ]
+    depends_on:
+      - registry
+    environment:
+      - HOSTNAME=peer4
+      - PORT=8084
+  peer5:
+    build:
+      context: .
+      dockerfile: Dockerfile_peer
+    ports:
+      - "8085:8085"
+    networks:
+      - my_network
+    hostname: peer5
+    command: [ "./peer/peer" ]
+    depends_on:
+      - registry
+    environment:
+      - HOSTNAME=peer5
+      - PORT=8085
+
+  registry:
+    build:
+      context: .
+      dockerfile: Dockerfile_registry
+    ports:
+      - "8080:8080"
+    networks:
+      - my_network
+    hostname: registry
+    command: ["./registry/registry"]
+
+    environment:
+      - HOSTNAME=registry
+      - PORT=8080

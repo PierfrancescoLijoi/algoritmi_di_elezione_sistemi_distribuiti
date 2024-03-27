@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+option go_package="interfaccia/";
+
+import "google/protobuf/empty.proto";
+//non cè convenzione su come scrivere i nomi dei messaggi/procedure/servizi (ad esempio PascalCase ecc), viene scelta una modalità mista
+
+//// messaggi,procedure e servizi remoti per Ring Election
+message MessageElection {
+  repeated string list_id_peer = 1;
+}
+
+message resultElection {
+  string id_peers = 1;
+}
+
+message checkLeader {
+  string check = 1;
+}
+
+service RingElection {
+
+  rpc SendElection(MessageElection) returns (google.protobuf.Empty) {}
+  rpc SendResult (resultElection) returns (google.protobuf.Empty) {}
+  rpc SendCheck (checkLeader)returns(checkLeader) {}
+  rpc SendRequest(JSONClientRegistration) returns (JSONListPeer);
+  rpc SendUpdate(JSONListPeer) returns (google.protobuf.Empty) {}
+}
+
+/// messaggi comuni per entrambi i servizi remoti, registrazione e aggiornamento lista peer
+message JSONClientRegistration {
+  string hostname = 1;
+  string port = 2;
+  string id_peer = 3;
+}
+message JSONListPeer {
+  repeated JSONClientRegistration items = 1;
+}
+///////////
+///// messaggi,procedure e servizi remoti per Raft Election
+message RequestElection{
+  string vote=1;
+  int32 term=2;
+}
+message AnswerElection{
+  string vote=1;
+}
+message HeartBeat{
+  int32 term=1;
+  string leaderID=2;
+}
+
+service RaftElection{
+  rpc SendRequest(JSONClientRegistration) returns (JSONListPeer);
+  rpc SendUpdate(JSONListPeer) returns (google.protobuf.Empty) {}
+
+  rpc SendRaftElection( RequestElection) returns (AnswerElection);
+  rpc sendHeartBeat (HeartBeat) returns (google.protobuf.Empty){}
+}

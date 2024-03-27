@@ -1,0 +1,8 @@
+FROM golang:latest
+WORKDIR /app
+ENV PORT 8080
+ENV HOSTNAME registry
+COPY . .
+RUN go build -o registry ./registry
+EXPOSE 8080
+CMD ["./registry/registry"]
