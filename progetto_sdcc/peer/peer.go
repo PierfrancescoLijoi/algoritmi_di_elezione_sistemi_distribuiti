@@ -17,14 +17,13 @@ import (
 
 const (
 	ADDRESS_REGISTRY = "registry:8080" // localhostname "localhostname:8080" se in locale
-	ELEZIONE         = "anello"        // anello o raft
-
 )
 
 var (
 	HOSTNAME          string = os.Getenv("HOSTNAME") // in locale è uguale per tutti
 	PORT_EXPOSE              = os.Getenv("PORT")     //da 50051 fino a quel che si vuole
 	ID_PEER                  = os.Getenv("HOSTNAME")
+	ELEZIONE          string = os.Getenv("ELEZIONE")
 	LeaderPeerAddress string = ""
 	jsonListPeer      []Peer
 	FollowerChannel          = make(chan interface{})
@@ -529,7 +528,7 @@ func genesiRaft() {
 
 // //////////////////////////////////////
 func main() {
-
+	fmt.Println("algoritmo selezione nella variabile di ambiente: ", ELEZIONE)
 	if ELEZIONE == "anello" {
 		///duplicazione del codice
 		lis, err := net.Listen("tcp", ":"+PORT_EXPOSE)

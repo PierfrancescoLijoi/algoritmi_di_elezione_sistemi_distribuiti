@@ -4,6 +4,7 @@ networks:
   my_network:
     driver: bridge
 
+
 services:
   peer1:
     build:
@@ -17,9 +18,12 @@ services:
     command: ["./peer/peer"]
     depends_on:
       - registry
+
     environment:
       - HOSTNAME=peer1
       - PORT=8081
+      - ELEZIONE=anello
+
   peer2:
     build:
       context: .
@@ -35,6 +39,7 @@ services:
     environment:
       - HOSTNAME=peer2
       - PORT=8082
+      - ELEZIONE=anello
   peer3:
     build:
       context: .
@@ -50,6 +55,7 @@ services:
     environment:
       - HOSTNAME=peer3
       - PORT=8083
+      - ELEZIONE=anello
   peer4:
     build:
       context: .
@@ -65,6 +71,7 @@ services:
     environment:
       - HOSTNAME=peer4
       - PORT=8084
+      - ELEZIONE=anello
   peer5:
     build:
       context: .
@@ -80,6 +87,7 @@ services:
     environment:
       - HOSTNAME=peer5
       - PORT=8085
+      - ELEZIONE=anello
 
   registry:
     build:
@@ -95,3 +103,4 @@ services:
     environment:
       - HOSTNAME=registry
       - PORT=8080
+      - ELEZIONE=anello

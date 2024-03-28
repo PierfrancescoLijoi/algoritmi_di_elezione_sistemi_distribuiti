@@ -12,16 +12,11 @@ import (
 	"progetto_sdcc/interfaccia"
 )
 
-var Update bool = true
-
-const (
-	ELEZIONE = "anello" //raft o anello
-)
-
 var (
 	jsonList    []*interfaccia.JSONClientRegistration
-	PORT_EXPOSE        = os.Getenv("PORT")
-	HOSTNAME    string = os.Getenv("HOSTNAME")
+	PORT_EXPOSE      = os.Getenv("PORT")
+	ELEZIONE         = os.Getenv("ELEZIONE")
+	Update      bool = true
 )
 
 type serverRingElection struct {
@@ -94,6 +89,7 @@ func sendUpdate_allPeer(hostname, port string) error {
 
 // ////
 func main() {
+	fmt.Println("algoritmo selezione nella variabile di ambiente: ", ELEZIONE)
 	if ELEZIONE == "anello" {
 		lis, err := net.Listen("tcp", ":"+PORT_EXPOSE)
 		if err != nil {
