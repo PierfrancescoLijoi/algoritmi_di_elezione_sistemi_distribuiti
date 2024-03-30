@@ -17,12 +17,12 @@ services:
     hostname: container1
     command: ["./peer/peer"]
     depends_on:
-      - registry
+      - peer2
 
     environment:
       - HOSTNAME=peer1
       - PORT=8081
-      - ELEZIONE=anello
+      - ELEZIONE=raft
 
   peer2:
     build:
@@ -35,11 +35,11 @@ services:
     hostname: peer2
     command: ["./peer/peer"]
     depends_on:
-      - registry
+      - peer3
     environment:
       - HOSTNAME=peer2
       - PORT=8082
-      - ELEZIONE=anello
+      - ELEZIONE=raft
   peer3:
     build:
       context: .
@@ -51,11 +51,11 @@ services:
     hostname: peer3
     command: [ "./peer/peer" ]
     depends_on:
-      - registry
+      - peer4
     environment:
       - HOSTNAME=peer3
       - PORT=8083
-      - ELEZIONE=anello
+      - ELEZIONE=raft
   peer4:
     build:
       context: .
@@ -67,11 +67,11 @@ services:
     hostname: peer4
     command: [ "./peer/peer" ]
     depends_on:
-      - registry
+      - peer5
     environment:
       - HOSTNAME=peer4
       - PORT=8084
-      - ELEZIONE=anello
+      - ELEZIONE=raft
   peer5:
     build:
       context: .
@@ -87,7 +87,7 @@ services:
     environment:
       - HOSTNAME=peer5
       - PORT=8085
-      - ELEZIONE=anello
+      - ELEZIONE=raft
 
   registry:
     build:
@@ -103,4 +103,4 @@ services:
     environment:
       - HOSTNAME=registry
       - PORT=8080
-      - ELEZIONE=anello
+      - ELEZIONE=raft

@@ -47,7 +47,7 @@ type Peer struct {
 	Hostname string `json:"hostname"`
 	Port     string `json:"port"`
 	IDpeer   string `json:"iDpeer"`
-}
+} //si sarebbe potuto usare al suo posto anche un lista di messaggio di richiesta definita nel protofile
 
 // /////////////algoritmo ring election
 func (s *serverRingElection) SendElection(ctx context.Context, req *interfaccia.MessageElection) (*emptypb.Empty, error) {
@@ -318,18 +318,17 @@ func connectToPeer(ipAddress string) (*grpc.ClientConn, error) {
 func (s *serverRaftElection) SendHeartBeat(ctx context.Context, req *interfaccia.HeartBeat) (*emptypb.Empty, error) {
 	fmt.Println("ricevuto heartbeat")
 
-	LeaderID = req.LeaderID
-	Term = req.Term
-	StopChannel <- ""
-	fmt.Printf("ricevuto heartbeat leader %s e %d\n", LeaderID, Term)
-
 	if req.Term >= Term {
+
 		LeaderID = req.LeaderID
 		Term = req.Term
+		fmt.Printf("ricevuto heartbeat leader %s e %d\n", LeaderID, Term)
 		StopChannel <- ""
-
+		// se ci fosse un leader con term maggiore o uguale del mio (probabile partizione di rete),
+		// stoppo l'invio del mio heart beat perche non sono più il leader
 	} else {
-		HeartbeatChannel <- ""
+		fmt.Println("ricevuto heartbeat di un altro leader, ma sono io il migliore, lui lo capirà che sono io il leader")
+		//HeartbeatChannel <- "" //senno vuol dire che sono ancora io il leader
 	}
 
 	return &emptypb.Empty{}, nil
@@ -354,15 +353,24 @@ func (s *serverRaftElection) SendUpdate(ctx context.Context, item *interfaccia.J
 	return &emptypb.Empty{}, nil
 }
 func (s *serverRaftElection) SendRaftElection(ctx context.Context, req *interfaccia.RequestElection) (*interfaccia.AnswerElection, error) {
+	vote := ""
+
 	// Implementazione della logica di voto
-	if req.Term > Term {
-		Term = req.Term
-		// Aggiorna la propria logica per rispondere alla richiesta di voto
-		return &interfaccia.AnswerElection{Vote: "granted"}, nil
+	if req.Term > Term { // term maggiore del mio , non è "==" gestisce condizione per due elezioni
+		vote = "granted"
+	} else if req.Term == Term {
+		vote = "denied" // rifiuta il voto perchè nello stesso term ha votato gia per se stesso
+	} else { //era sufficiente solo l'else. è stato aggiunto per rendere la logica più comprensibile
+		vote = "denied" // Altrimenti, rifiuta il voto
 	}
 
-	// Altrimenti, rifiuta il voto
-	return &interfaccia.AnswerElection{Vote: "denied"}, nil
+	if Term < req.Term && LeaderID == "" { //rimango aggiornato con il term
+		Term = req.Term
+	}
+
+	fmt.Printf("ho votato %s \n", vote)
+
+	return &interfaccia.AnswerElection{Vote: vote}, nil
 }
 
 func randomGenerateTimerElection() {
@@ -378,8 +386,6 @@ func randomGenerateTimerHeartbeat() {
 }
 func sendRequestVoteToPeers() {
 	fmt.Printf("Voglio vincere e invio richieste di voto\n")
-
-	ElectionVote = ElectionVote + 1 //vota per se stesso
 	for _, peer := range jsonListPeer {
 
 		if peer.Hostname != HOSTNAME && peer.Port != PORT_EXPOSE { //quando sarà distribuito
@@ -407,11 +413,11 @@ func sendRequestVoteToPeers() {
 				ElectionVote = ElectionVote + 1 // Incrementa il conteggio dei voti ricevuti
 			}
 		}
+
 	}
 }
 func sendHeartBeat() {
 	for _, peer := range jsonListPeer {
-
 		//if peer.Hostname!=HOSTNAME && peer.Port!=PORT_EXPOSE { //qunado sarà distribuito
 		if peer.Port != PORT_EXPOSE {
 			fmt.Printf("sono io il leader STO INVIANDO HEARTBEAT \n")
@@ -440,16 +446,19 @@ func sendHeartBeat() {
 
 }
 func handleElectionMessages() {
+	ElectionVote = 0                // cancellare ogni volta tutti i voti precedenti , ridodante
+	Term = Term + 1                 //nuovo turno di elezione
+	ElectionVote = ElectionVote + 1 //vota per se stesso
 	randomGenerateTimerElection()
-	Term = Term + 1
 	ticker := time.Tick(time.Duration(TimerElection) * time.Second)
+	//ticker := time.Tick(time.Duration(TimerElection) * time.Millisecond)
 	fmt.Printf("elezione %d\n", Term)
 	sendRequestVoteToPeers()
 
 	//se il timer scade prima interrompe tutto
 	select {
 	case <-ticker:
-		if ElectionVote > (len(jsonListPeer) / 2) {
+		if ElectionVote > (len(jsonListPeer) / 2) { //non è robusto ai nodi bizantini, per esserlo dovrebbe esserlo > 2/3
 			LeaderID = ID_PEER
 			fmt.Printf("Ho vinto le elezioni con %d , su %d possibili e azzero i voti", ElectionVote, len(jsonListPeer))
 			ElectionVote = 0
@@ -472,10 +481,20 @@ func handleElectionMessages() {
 
 		}
 	}
+	//
 }
 func handleHeartbeat() {
-	ticker := time.Tick(time.Duration(TimerHeartBeat) * time.Second)
-	//ticker := time.Tick(2 * time.Second)
+	ticker := time.Tick(time.Duration(TimerHeartBeat) * time.Second) //introduce sintomatologia di una rete partizionata, ma raggiunge la convergenza alla soluzione,
+	// elegendo un solo leader con il term più alto. Viene scelto questo timer per fcilitare l'analisi in test e debugging e ooservare la robustezza
+	// alla rete partizionata
+
+	// introduce sintomaolgia di una rete partizionataperchè:
+	// la rete va nell'ordine dei mms essendo in locale ma avendo timer così grandi (ordine dei s.)
+	// è come se fossero partizionate perchè hanno velocità troppo differente e vengono eletti leader nello stess term per via del timer troppo grande
+
+	//ticker := time.Tick(time.Duration(TimerHeartBeat) * time.Millisecond)
+	// con l'ordine dei millisecondi,l'algortimo funziona perfettamente senza introdurre una sintomatologia riconducibile alla partizione di rete,
+	// però rende la comprensione dei print impossibile poiche troppo veloce
 	if LeaderID == ID_PEER {
 		select {
 		case <-ticker:
@@ -487,7 +506,7 @@ func handleHeartbeat() {
 				return
 			}
 		case <-StopChannel:
-			fmt.Println("mi hanno bloccato la handlHeartbeat")
+			fmt.Println("mi hanno bloccato la handleHeartbeat, cè un leader più giovane di me ")
 			FollowerChannel <- ""
 			return
 		}
@@ -496,14 +515,13 @@ func handleHeartbeat() {
 
 }
 func handleFollower() {
-
 	randomGenerateTimerElection()
 	ticker := time.Tick(time.Duration(TimerElection) * time.Second)
-	//ticker := time.Tick(6 * time.Second)
 	fmt.Println("Sono un Follower e sono in attesa di ricevere heartbeat")
 	select {
 	case <-ticker:
 		fmt.Println("STOP non arriva nulla!!!")
+		LeaderID = ""
 		ElectionChannel <- ""
 		return
 	case <-StopChannel:
